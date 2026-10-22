@@ -1,0 +1,7 @@
+# Ignore everything by default; open up files as they get cleaned.
+/*
+!/.gitignore
+
+!/common/
+/common/*
+!/common/*.h
