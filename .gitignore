@@ -9,3 +9,11 @@
 !/CrossChecks/
 /CrossChecks/*
 !/CrossChecks/*.C
+!/ZbbGamma/
+/ZbbGamma/*
+!/ZbbGamma/Zbby_Insitu_Analysis.cxx
+!/ZbbGamma/Run_DB_Analysis_Run2.sh
+!/ZbbGamma/Run_DB_Analysis_Run3.sh
+!/ZbbGamma/Run_DB_MuonCorr.sh
+.DS_Store
+
