@@ -1,8 +1,12 @@
-/*
+/**
  * ============================================================================
  *  BinningConfig.h - histogram binning for the mass and response fits
  * ============================================================================
- *
+ * ===========================================
+ * @author:    Thiziri AMEZZA
+ * @email:     thiziri.amezza@cern.ch
+ * @date:      10 March 2026 
+ * ===========================================
  *  OVERVIEW
  *  --------
  *  The fit results depend noticeably on the binning, so instead of hardcoding
@@ -41,7 +45,10 @@
  *
  * For production we use fixed binning; the other modes were used to decide
  * on the fixed values and to check the binning systematic.
- * ============================================================================
+ * 
+ * ==========================================================================
+ * @version:  1.0
+ * ========================================================================== 
  */
 
 #ifndef EASYBJETS_BINNING_CONFIG_H
