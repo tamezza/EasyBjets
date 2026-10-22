@@ -6,3 +6,6 @@
 /common/*
 !/common/*.h
 !/common/Utils/
+!/CrossChecks/
+/CrossChecks/*
+!/CrossChecks/*.C
