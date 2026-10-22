@@ -15,5 +15,11 @@
 !/ZbbGamma/Run_DB_Analysis_Run2.sh
 !/ZbbGamma/Run_DB_Analysis_Run3.sh
 !/ZbbGamma/Run_DB_MuonCorr.sh
+!/ZbbJets/
+/ZbbJets/*
+!/ZbbJets/ZbbJets_Insitu_Analysis.cxx
+!/ZbbJets/Run_MJB_Analysis_Run2.sh
+!/ZbbJets/Run_MJB_Analysis_Run3.sh
+!/ZbbJets/Run_MJB_MuonCorr.sh
 .DS_Store
 
