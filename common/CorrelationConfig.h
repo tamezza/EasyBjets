@@ -17,16 +17,25 @@
  *   boot      same as file, but the file is expected to come from the
  *             bootstrap macro (only the warning message differs)
  *
- * File format: correlations.txt in the working directory, or the path in EASYBJETS_CORRELATIONS. 
- * One line per (domain, channel, WP, pT bin):
+ * File format: correlations.txt in the working directory, or the path in
+ * EASYBJETS_CORRELATIONS, written by Bootstrap_Correlations. One line per
+ * (domain, channel, WP, bin):
  *
- *   mass DB  0p46 pt200to300 rho_mu_dd=0.98 rho_mu_mm=0.95 rho_sig_dd=0.92 rho_sig_mm=0.88
- *   resp DB  0p46 pt200to300 rho_mu_dd=0.97 rho_mu_mm=0.94
- *   DB 0p46 pt200to300 rho_mu_dd=0.98      (no domain = mass, older format)
+ *   mass DB 0p46 bJER10v01:pt200to300            rho_mu_dd=0.98 rho_mu_mm=0.95 ...
+ *   resp DB 0p46 bJER10v01:inclusive             rho_mu_dd=0.97 ... rho_sig_tt=0.99 ...
+ *   resp DB 0p46 bJER10v01:200to300GeV           (pT bin, no mass cut)
+ *   resp DB 0p46 bJER10v01:200to300GeV_50-80GeV  (pT bin and mass bin)
+ *   DB 0p46 pt200to300 rho_mu_dd=0.98            (older format: no domain = mass,
+ *                                                 no correction prefix)
+ * The bin label starts with the correction ("bJER10v01:") because each
+ * correction has its own correlation with the nominal. CorrFor() with a
+ * correction name looks for that label first and then for the label without
+ * the prefix (files written by the older bootstrap).
  *
- * Lines starting with # are ignored. Keys not given on a line, and bins not in the file at all, 
- * fall back to rho = 1 for shared pairs and 0 for cross pairs, so the "full correlation" result 
- * equals the rho = 1 one wherever the file has uncovered bin.
+ * Lines starting with # are ignored. Keys not given on a line, and bins not in
+ * the file, fall back to the default matrix: rho = 1 between correction and
+ * nominal of the same quantity, 0 between data and MC and between MC reco and
+ * truth widths.
  * ==========================================================================
  * @version:  1.0
  * ==========================================================================
@@ -35,7 +44,9 @@
 #ifndef EASYBJETS_CORRELATION_CONFIG_H
 #define EASYBJETS_CORRELATION_CONFIG_H
 
+#include <algorithm>
 #include <cctype>
+#include <cmath>
 #include <cstdlib>
 #include <fstream>
 #include <iostream>
@@ -98,6 +109,16 @@ struct CorrelationMatrix {
     double rho_sig_dv_mn  = 0.0;
     double rho_sig_dn_mv  = 0.0;
     double rho_sig_dn_mn  = 0.0;
+
+    // Response only: MC truth width sigma_truth (pT_truth / pT_ref).
+    // Correction and nominal of the truth width: the corrections change the
+    // reco jet, not the truth jet, so this is close to 1.
+    double rho_sig_tt     = 1.0;
+    // MC reco width vs MC truth width (same MC events). Default 0.
+    double rho_sig_mv_tv  = 0.0;
+    double rho_sig_mv_tn  = 0.0;
+    double rho_sig_mn_tv  = 0.0;
+    double rho_sig_mn_tn  = 0.0;
 };
 
 // Observable domain: Mass peak fits vs response R_DB/R_MJB fits have
@@ -154,7 +175,7 @@ inline const std::map<std::string, CorrelationMatrix>& Correlations() {
     }
 
     std::string line;
-    int nLoaded = 0, nMass = 0, nResp = 0;
+    int nLoaded = 0, nMass = 0, nResp = 0, nOld = 0;
     while (std::getline(in, line)) {
         size_t p = 0;
         while (p < line.size() && std::isspace((unsigned char)line[p])) ++p;
@@ -194,15 +215,25 @@ inline const std::map<std::string, CorrelationMatrix>& Correlations() {
             else if (k == "rho_sig_dv_mn")   C.rho_sig_dv_mn   = v;
             else if (k == "rho_sig_dn_mv")   C.rho_sig_dn_mv   = v;
             else if (k == "rho_sig_dn_mn")   C.rho_sig_dn_mn   = v;
+            else if (k == "rho_sig_tt")      C.rho_sig_tt      = v;
+            else if (k == "rho_sig_mv_tv")   C.rho_sig_mv_tv   = v;
+            else if (k == "rho_sig_mv_tn")   C.rho_sig_mv_tn   = v;
+            else if (k == "rho_sig_mn_tv")   C.rho_sig_mn_tv   = v;
+            else if (k == "rho_sig_mn_tn")   C.rho_sig_mn_tn   = v;
         }
         cache[CorrKey(domain, channel, wp, ptbin)] = C;
         ++nLoaded;
+        if (ptbin.find(':') == std::string::npos) ++nOld;
         if (domain == CorrDomain::Mass) ++nMass; else ++nResp;
     }
 
     std::cout << "[Correlations] loaded " << nLoaded
               << " entries from " << path
               << " (mass: " << nMass << ", resp: " << nResp << ")\n";
+    if (nOld > 0)
+        std::cerr << "[Correlations] WARN: " << nOld << " lines have the old format (no \"<correction>:\""
+                  << " in the bin label). Files from the older bootstrap gave rho ~ 0 (independent"
+                  << " weights); re-run Bootstrap_Correlations to replace them.\n";
     return cache;
 }
 
@@ -221,6 +252,88 @@ inline CorrelationMatrix CorrFor(const std::string& channel,
                                   const std::string& wp,
                                   const std::string& ptbin) {
     return CorrFor(CorrDomain::Mass, channel, wp, ptbin);
+}
+
+// Bin label of the response fits: the pT-bin label, plus "_<mass bin>" when
+// the fit is split in mass bins ("MassInclusive" or empty = no mass split).
+// Used by Bootstrap_Correlations when writing and by the ratio macros when
+// reading, so both sides build exactly the same label.
+inline std::string RespBinLabel(const std::string& ptLabel, const std::string& massDir = "") {
+    if (massDir.empty() || massDir == "MassInclusive") return ptLabel;
+    return ptLabel + "_" + massDir;
+}
+
+// Correlations of one correction (e.g. "bJER10v01", the variant path_tag):
+// looks for "<correction>:<label>" first, then for "<label>" (older files),
+// and returns the default matrix if neither is in the file.
+inline CorrelationMatrix CorrFor(CorrDomain domain, const std::string& channel,
+                                  const std::string& wp, const std::string& label,
+                                  const std::string& correction) {
+    const auto& m = Correlations();
+    if (!correction.empty()) {
+        auto it = m.find(CorrKey(domain, channel, wp, correction + ":" + label));
+        if (it != m.end()) return it->second;
+    }
+    auto it = m.find(CorrKey(domain, channel, wp, label));
+    return (it != m.end()) ? it->second : CorrelationMatrix{};
+}
+
+// Full-covariance relative error of a resolution double ratio, c^T Sigma c over
+// the six fitted widths
+//   x = (s_d,corr, s_d,nom, s_m,corr, s_m,nom, s_t,corr, s_t,nom)
+// (data, combined MC and truth widths, correction and nominal), with
+//   u = s_d^2 - s_t^2 = sigma_insitu^2,   v = s_m^2 - s_t^2 = (sigma^MC_insitu)^2.
+// The c are the derivatives of ln(DR):
+//   DR(sigma_insitu): d ln/ds_d = s_d/u,  d ln/ds_t = -s_t/u           (no s_m)
+//   DR(R_JER):        d ln/ds_d = s_d/u,  d ln/ds_m = -s_m/v,
+//                     d ln/ds_t = s_t (1/v - 1/u)
+// with opposite signs for the nominal. The rho come from C (data-truth pairs
+// are 0: different samples). Returns 0 if a difference of squares is <= 0.
+inline double ResolutionDRRelErrFull(bool isRJER,
+                                     double sd_c, double sd_c_err, double sd_n, double sd_n_err,
+                                     double sm_c, double sm_c_err, double sm_n, double sm_n_err,
+                                     double st_c, double st_c_err, double st_n, double st_n_err,
+                                     const CorrelationMatrix& C) {
+    const double u_c = sd_c * sd_c - st_c * st_c, u_n = sd_n * sd_n - st_n * st_n;
+    const double v_c = sm_c * sm_c - st_c * st_c, v_n = sm_n * sm_n - st_n * st_n;
+    if (u_c <= 0 || u_n <= 0) return 0.0;
+    if (isRJER && (v_c <= 0 || v_n <= 0)) return 0.0;
+
+    double c[6];
+    c[0] = sd_c / u_c;
+    c[1] = -sd_n / u_n;
+    if (isRJER) {
+        c[2] = -sm_c / v_c;
+        c[3] = sm_n / v_n;
+        c[4] = st_c * (1.0 / v_c - 1.0 / u_c);
+        c[5] = -st_n * (1.0 / v_n - 1.0 / u_n);
+    } else {
+        c[2] = 0.0;
+        c[3] = 0.0;
+        c[4] = -st_c / u_c;
+        c[5] = st_n / u_n;
+    }
+    const double e[6] = {sd_c_err, sd_n_err, sm_c_err, sm_n_err, st_c_err, st_n_err};
+
+    double rho[6][6] = {};
+    for (int i = 0; i < 6; ++i) rho[i][i] = 1.0;
+    auto set = [&](int i, int j, double r) { rho[i][j] = rho[j][i] = r; };
+    set(0, 1, C.rho_sig_dd);
+    set(2, 3, C.rho_sig_mm);
+    set(4, 5, C.rho_sig_tt);
+    set(0, 2, C.rho_sig_dv_mv);
+    set(0, 3, C.rho_sig_dv_mn);
+    set(1, 2, C.rho_sig_dn_mv);
+    set(1, 3, C.rho_sig_dn_mn);
+    set(2, 4, C.rho_sig_mv_tv);
+    set(2, 5, C.rho_sig_mv_tn);
+    set(3, 4, C.rho_sig_mn_tv);
+    set(3, 5, C.rho_sig_mn_tn);
+
+    double rel2 = 0.0;
+    for (int i = 0; i < 6; ++i)
+        for (int j = 0; j < 6; ++j) rel2 += c[i] * c[j] * rho[i][j] * e[i] * e[j];
+    return std::sqrt(std::max(0.0, rel2));
 }
 
 }  // namespace CorrelationConfig

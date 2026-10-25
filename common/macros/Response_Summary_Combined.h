@@ -95,8 +95,8 @@ enum class Qty { JES, JER };
 // treatment). The one in use is set with DRErrFlavor() and read by DoubleRatErr.
 //   Uncorr  errors added in quadrature, no correlation (largest error)
 //   Corr    variant and nominal fully correlated (rho = 1, same events)
-//   Full    rho from "correlations.txt". For R_JER this column equals Corr,
-//           since no partial-rho propagation is implemented for the width.
+//   Full    rho measured by the bootstrap ("correlations.txt"), for R_JES and
+//           R_JER. Without a matching line the default matrix is used.
 enum class DRErr { Uncorr, Corr, Full };
 inline DRErr& DRErrFlavor() {
     static DRErr f = DRErr::Uncorr;

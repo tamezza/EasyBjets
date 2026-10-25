@@ -33,6 +33,7 @@
  * Usage (from ZbbGamma/macros or ZbbJets/macros; the plots go to that
  * channel's Run{2,3}Plots), after Response_Ratios_pTbins_Mcuts.cxx("ALL") in
  * both channels with the same EASYBJETS_RUN:
+ * 
  *   root 'Response_Ratios_Combined.cxx()'              every correction
  *   root 'Response_Ratios_Combined.cxx("bJER10v01")'   one correction
  *
@@ -90,7 +91,7 @@ struct Row {
     double rjes_dr = 0, rjes_dr_err = 0; // uncorrelated error
     double sig_insitu_dr = 0, sig_insitu_dr_err_unc = 0, sig_insitu_dr_err_corr = 0;
     double rjer_dr = 0, rjer_dr_err_unc = 0, rjer_dr_err_corr = 0;
-    // columns 41-44; the resolution "_full" values equal the corr-aware ones
+    // columns 41-44: errors with the bootstrap rho from correlations.txt
     double rjes_dr_err_corr = 0, rjes_dr_err_full = 0;
     double sig_insitu_dr_err_full = 0, rjer_dr_err_full = 0;
     bool hasFullErr = false;

@@ -520,7 +520,11 @@ inline RatioResults CalculateRatios(const std::string& dataset_before, const std
                 DR, mu_d_var, emu_d_var, mu_d_nom, emu_d_nom, mu_m_var, emu_m_var, mu_m_nom, emu_m_nom);
 
             // Full correlation-matrix (Rho from correlations.txt)
-            CorrelationMatrix C = CorrFor(CurrentChannel(), fileWP, ptCfg.fileNames[b]);
+            // rho measured by Bootstrap_Correlations for this correction and pT bin
+            // ("<correction>:<ptbin>"); default matrix if not in the file.
+            CorrelationMatrix C = CorrelationConfig::CorrFor(CorrelationConfig::CorrDomain::Mass, CurrentChannel(),
+                                                             fileWP, ptCfg.fileNames[b],
+                                                             GetVariant(dataset_after).path_tag);
             results.mean_ratio_err_full[b] = JMSDoubleRatioErrFullCorr(
                 DR, mu_d_var, emu_d_var, mu_d_nom, emu_d_nom, mu_m_var, emu_m_var, mu_m_nom, emu_m_nom, C);
         }
@@ -599,7 +603,11 @@ inline RatioResults CalculateRatios(const std::string& dataset_before, const std
                 JMRDoubleRatioErrCorrAware(DR, sd_v, esd_v, sd_n, esd_n, sm_v, esm_v, sm_n, esm_n);
 
             // Full correlation-matrix (rho from correlations.txt)
-            CorrelationMatrix C = CorrFor(CurrentChannel(), fileWP, ptCfg.fileNames[b]);
+            // rho measured by Bootstrap_Correlations for this correction and pT bin
+            // ("<correction>:<ptbin>"); default matrix if not in the file.
+            CorrelationMatrix C = CorrelationConfig::CorrFor(CorrelationConfig::CorrDomain::Mass, CurrentChannel(),
+                                                             fileWP, ptCfg.fileNames[b],
+                                                             GetVariant(dataset_after).path_tag);
             results.sigma_ratio_err_full[b] =
                 JMRDoubleRatioErrFullCorr(DR, sd_v, esd_v, sd_n, esd_n, sm_v, esm_v, sm_n, esm_n, C);
         } else if (jmr_nom > 1e-10) {
@@ -1419,7 +1427,7 @@ inline void WriteCombinedSummary(const std::vector<RatioResults>& all_results,
     out << "Definitions (per pT bin):\n";
     out << "  JMS = mu_data / mu_MC                   (within one variant)\n";
     out << "  JMR = sigma_data / sigma_MC             (within one variant, width ratio)\n";
-    out << "  DR(x) = x_variant / x_nominal\n\n";
+    out << "  DR(X) = X_variant / X_nominal\n\n";
     out << "Error treatments:\n";
     out << "  uncorr   : naive - all 4 inputs (mu/sigma for data and MC,\n";
     out << "             variant and nominal) treated as independent.\n";
