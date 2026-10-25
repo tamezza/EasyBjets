@@ -33,6 +33,8 @@
 !/common/macros/Response_Summary_Combined.h
 !/common/macros/Response_Ratios_Combined.h
 !/common/macros/Response_*.h
+!/common/macros/CutFlow.h
+!/common/macros/Efficiency.h
 !/ZbbGamma/macros/
 /ZbbGamma/macros/*
 !/ZbbGamma/macros/rootlogon.C
@@ -42,6 +44,8 @@
 !/ZbbGamma/macros/Mass_Distributions.cxx
 !/ZbbGamma/macros/Mass_Distributions_pTbins.cxx
 !/ZbbGamma/macros/Response_*.cxx
+!/ZbbGamma/macros/CutFlow.cxx
+!/ZbbGamma/macros/Efficiency.cxx
 !/ZbbJets/macros/
 /ZbbJets/macros/*
 !/ZbbJets/macros/rootlogon.C
@@ -51,5 +55,7 @@
 !/ZbbJets/macros/Mass_Distributions.cxx
 !/ZbbJets/macros/Mass_Distributions_pTbins.cxx
 !/ZbbJets/macros/Response_*.cxx
+!/ZbbJets/macros/CutFlow.cxx
+!/ZbbJets/macros/Efficiency.cxx
 .DS_Store
 
