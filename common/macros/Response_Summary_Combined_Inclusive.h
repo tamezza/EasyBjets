@@ -301,7 +301,7 @@ inline void DrawInclusiveRatioFigure(Qty q, const std::string& wp_label, const s
     tex.SetNDC();
     tex.SetTextFont(42);
     tex.SetTextSize(0.052);
-    tex.DrawLatex(0.17, 0.86, "#font[72]{ATLAS} Preliminary");
+    tex.DrawLatex(0.17, 0.86, AtlasLabel::Title().c_str());
     tex.SetTextSize(0.040);
     tex.DrawLatex(0.17, 0.79, RunConfig::LumiLabel().c_str());
     tex.DrawLatex(0.17, 0.73, "Inclusive Mass: [50 - 150] GeV");
@@ -488,7 +488,7 @@ inline void DrawInclusiveResponseFigure(Qty q, const std::string& wp_label, cons
     tex.SetNDC();
     tex.SetTextFont(42);
     tex.SetTextSize(0.07);
-    tex.DrawLatex(0.17, 0.85, "#font[72]{ATLAS} #scale[0.79]{Preliminary}");
+    tex.DrawLatex(0.17, 0.85, AtlasLabel::Title(0.79).c_str());
     tex.SetTextSize(0.055);
     tex.DrawLatex(0.17, 0.77, "Inclusive");
     tex.SetTextSize(0.045);

@@ -517,7 +517,7 @@ inline void DrawSummaryFigure(Qty q, int massIdx, const std::string& wp_label, c
     tex.SetNDC();
     tex.SetTextFont(42);
     tex.SetTextSize(0.052);
-    tex.DrawLatex(0.17, 0.86, "#font[72]{ATLAS} Preliminary");
+    tex.DrawLatex(0.17, 0.86, AtlasLabel::Title().c_str());
     tex.SetTextSize(0.040);
     tex.DrawLatex(0.17, 0.79, RunConfig::LumiLabel().c_str());
     tex.DrawLatex(0.17, 0.73, MassBinDisplayLabel(massIdx).c_str());
@@ -747,7 +747,7 @@ inline void DrawSummaryFigureMassOverlay(Qty q, const std::string& wp_label, con
     tex.SetNDC();
     tex.SetTextFont(42);
     tex.SetTextSize(0.052);
-    tex.DrawLatex(0.17, 0.86, "#font[72]{ATLAS} Preliminary");
+    tex.DrawLatex(0.17, 0.86, AtlasLabel::Title().c_str());
     tex.SetTextSize(0.038);
     tex.DrawLatex(0.17, 0.79, RunConfig::LumiLabel().c_str());
     tex.DrawLatex(0.17, 0.74, ("WP: " + wp_label).c_str());
@@ -981,7 +981,7 @@ inline void DrawResponseFigure(Qty q, int massIdx, const std::string& wp_label, 
     tex.SetNDC();
     tex.SetTextFont(42);
     tex.SetTextSize(0.07);
-    tex.DrawLatex(0.17, 0.85, "#font[72]{ATLAS} #scale[0.79]{Preliminary}");
+    tex.DrawLatex(0.17, 0.85, AtlasLabel::Title(0.79).c_str());
     tex.SetTextSize(0.055);
     tex.SetTextSize(0.045);
     tex.DrawLatex(0.17, 0.77, ("WP: " + wp_label).c_str());
@@ -1200,7 +1200,7 @@ inline void DrawResponseFigureMassOverlay(Qty q, const std::string& wp_label, co
     tex.SetNDC();
     tex.SetTextFont(42);
     tex.SetTextSize(0.07);
-    tex.DrawLatex(0.17, 0.85, "#font[72]{ATLAS} #scale[0.79]{Preliminary}");
+    tex.DrawLatex(0.17, 0.85, AtlasLabel::Title(0.79).c_str());
     tex.SetTextSize(0.055);
     tex.SetTextSize(0.045);
     tex.DrawLatex(0.17, 0.77, ("WP: " + wp_label).c_str());

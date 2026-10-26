@@ -474,7 +474,7 @@ inline void DrawMassRatioFigure(MQ q, const std::string& wp_label, const std::st
     tx.SetNDC();
     tx.SetTextFont(42);
     tx.SetTextSize(0.052);
-    tx.DrawLatex(0.17, 0.86, "#font[72]{ATLAS} Preliminary");
+    tx.DrawLatex(0.17, 0.86, AtlasLabel::Title().c_str());
     tx.SetTextSize(0.040);
     tx.DrawLatex(0.17, 0.79, RunConfig::LumiLabel().c_str());
     tx.DrawLatex(0.17, 0.73, "Mass fit");
@@ -663,7 +663,7 @@ inline void DrawMassResponseFigure(MQ q, const std::string& wp_label, const std:
     tx.SetNDC();
     tx.SetTextFont(42);
     tx.SetTextSize(0.07);
-    tx.DrawLatex(0.17, 0.85, "#font[72]{ATLAS} #scale[0.79]{Preliminary}");
+    tx.DrawLatex(0.17, 0.85, AtlasLabel::Title(0.79).c_str());
     tx.SetTextSize(0.055);
     tx.DrawLatex(0.17, 0.77, "Nominal");
     tx.SetTextSize(0.045);

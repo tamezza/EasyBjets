@@ -27,9 +27,9 @@
  *   export EASYBJETS_RUN=run3
  *   export EASYBJETS_DATA_DIR=$HOME/lpnatlas_data/ZbbGamma    (ZbbJets for MJB)
  *   export EASYBJETS_MASS_CUT=on       for this analysis: jets with 50-150 GeV
- *   root -l -b -q 'Mass_Distributions.cxx()'                nominal variant
- *   root -l -b -q 'Mass_Distributions.cxx("DB_bJER10v00")'  one variant (MJB_... in ZbbJets)
- *   root -l -b -q 'Mass_Distributions.cxx("ALL")'           all four variants
+ *   root 'Mass_Distributions.cxx()'                nominal variant
+ *   root 'Mass_Distributions.cxx("DB_bJER10v00")'  one variant (MJB_... in ZbbJets)
+ *   root 'Mass_Distributions.cxx("ALL")'           all four variants
  *
  * Output: <PlotDir>/<variant>/Mass_Distributions/<wp>/
  *   stack plots (Large_R_Jet_m*.pdf, Asymmetry*.pdf, R_DB_*.pdf),
@@ -760,11 +760,9 @@ class HistogramManager {
             {
                 TLatex l;
                 l.SetNDC();
-                l.SetTextFont(72);
-                l.SetTextSize(0.04);
-                l.DrawLatex(0.18, 0.88, "ATLAS");
                 l.SetTextFont(42);
-                l.DrawLatex(0.33, 0.88, "Internal");
+                l.SetTextSize(0.04);
+                l.DrawLatex(0.18, 0.88, AtlasLabel::Title().c_str());
                 l.SetTextSize(0.035);
                 l.DrawLatex(0.18, 0.83, RunConfig::LumiLabel().c_str());
                 if (!ptDispLabel_.empty()) l.DrawLatex(0.18, 0.78, ptDispLabel_.c_str());
@@ -885,11 +883,9 @@ class HistogramManager {
             {
                 TLatex l;
                 l.SetNDC();
-                l.SetTextFont(72);
-                l.SetTextSize(0.04);
-                l.DrawLatex(0.22, 0.88, "ATLAS");
                 l.SetTextFont(42);
-                l.DrawLatex(0.37, 0.88, "Internal");
+                l.SetTextSize(0.04);
+                l.DrawLatex(0.22, 0.88, AtlasLabel::Title().c_str());
                 l.SetTextSize(0.035);
                 l.DrawLatex(0.22, 0.83, RunConfig::LumiLabel().c_str());
             }

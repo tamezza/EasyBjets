@@ -35,6 +35,7 @@
 #ifndef VARIANT_CONFIG_H
 #define VARIANT_CONFIG_H
 
+#include "AtlasLabel.h"          // AtlasLabel:: ATLAS label of the plots (EASYBJETS_ATLAS_LABEL)
 #include "RunEra.h"             // RunConfig::NtupleSubdir(), PlotDir(), LumiLabel()
 #include "WorkingPointConfig.h" // WorkingPoint:: registry - WP labels / branch names
 
@@ -610,17 +611,13 @@ namespace AtlasUtils {
         loaded = true;
     }
 
+    // "ATLAS <status>" at (x1, y1) and the luminosity line y2_offset below.
+    // The status comes from AtlasLabel.h (EASYBJETS_ATLAS_LABEL). x2_offset is
+    // kept for the existing calls; the status now follows "ATLAS" directly.
     inline void DrawAtlasLabel(double x1 = 0.15,  double y1 = 0.85,
                                 double x2_offset = 0.1, double y2_offset = -0.04) {
-        TLatex latex;
-        latex.SetNDC();
-        latex.SetTextFont(72);
-        latex.SetTextColor(kBlack);
-        latex.SetTextSize(0.04);
-        latex.DrawLatex(x1, y1, "ATLAS");
-        latex.SetTextFont(42);
-        latex.DrawLatex(x1 + x2_offset, y1, "Internal");
-        latex.DrawLatex(x1, y1 + y2_offset, RunConfig::LumiLabel().c_str());
+        (void)x2_offset;
+        AtlasLabel::Draw(x1, y1, 0.04, true, y2_offset);
     }
 
 }  // namespace AtlasUtils

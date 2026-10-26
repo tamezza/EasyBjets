@@ -513,11 +513,9 @@ inline void DrawCombined(const std::vector<Row>& dbRows, const std::vector<Row>&
     // ATLAS label
     TLatex atlasLabel;
     atlasLabel.SetNDC();
-    atlasLabel.SetTextFont(72);
-    atlasLabel.SetTextSize(0.04);
-    atlasLabel.DrawLatex(0.16, 0.85, "ATLAS");
     atlasLabel.SetTextFont(42);
-    atlasLabel.DrawLatex(0.27, 0.85, "Internal");
+    atlasLabel.SetTextSize(0.04);
+    atlasLabel.DrawLatex(0.16, 0.85, AtlasLabel::Title().c_str());
     atlasLabel.SetTextSize(0.032);
     atlasLabel.DrawLatex(0.16, 0.80, RunConfig::LumiLabel().c_str());
     atlasLabel.DrawLatex(0.16, 0.76, ("Variant: " + cd.variantLabel + " / Nominal").c_str());

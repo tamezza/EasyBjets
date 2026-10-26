@@ -242,7 +242,7 @@ inline void DrawSignalBackgroundPlot(TH1F* h_data, TF1* f_background, TF1* signa
     tex.SetNDC();
     tex.SetTextFont(42);
     tex.SetTextSize(0.055);
-    tex.DrawLatex(0.18, 0.86, "#font[72]{ATLAS} Preliminary");
+    tex.DrawLatex(0.18, 0.86, AtlasLabel::Title().c_str());
     tex.SetTextSize(0.035);
     tex.DrawLatex(0.18, 0.79, lumiLabel.c_str());
     // Applied-calibration tag (Nominal / bJR10v00 / bJR10v01 / #mu-in-jet), drawn
@@ -481,7 +481,7 @@ inline void DrawSignalBackgroundPlot_MCTemplate(TH1F* h_data, TF1* f_background_
     tex.SetNDC();
     tex.SetTextFont(42);
     tex.SetTextSize(0.055);
-    tex.DrawLatex(0.18, 0.86, "#font[72]{ATLAS} Preliminary");
+    tex.DrawLatex(0.18, 0.86, AtlasLabel::Title().c_str());
     tex.SetTextSize(0.042);
     tex.DrawLatex(0.18, 0.79, lumiLabel.c_str());
 
