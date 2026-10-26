@@ -41,7 +41,7 @@
  * Options (environment variables):
  *   EASYBJETS_RUN, EASYBJETS_BINNING, EASYBJETS_FIT_MODEL   must match Mass_Fit
  *   EASYBJETS_CORR_METHOD        rho1 (default) | file | bootstrap
- *   EASYBJETS_CORRELATIONS       path of the rho file (default ./correlations.txt)
+ *   EASYBJETS_CORRELATIONS       path of the rho file (default ../Run3Plots/Bootstrap/correlations.txt)
  *   EASYBJETS_SUMMARY_VARIANTS   e.g. bJER10v01,MuonCorr: variants of the subset plot
  *
  * ==========================================================================
@@ -740,7 +740,7 @@ inline void DrawCombinedRatioPlot_vs_pT(const std::vector<RatioResults>& all_res
     TLatex wp_label;
     wp_label.SetNDC();
     wp_label.SetTextSize(0.035);
-    // Topology under the ATLAS Internal / lumi block (left side).
+    // Topology under the ATLAS label / lumi block (left side).
     wp_label.DrawLatex(0.18, 0.75, TopologyLabelFor(CurrentChannel()).c_str());
 
     c->SaveAs(outputPath.c_str());

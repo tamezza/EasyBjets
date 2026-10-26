@@ -95,7 +95,7 @@
  *   EASYBJETS_FIT_MODEL           unset = Gaussian; bukin, cb, dscb, dgauss, all add a suffix
  *                                 to the plot folder, so it must match the fit step
  *   EASYBJETS_CORR_METHOD         rho1 (default) | file | bootstrap: source of the "full" rho
- *   EASYBJETS_CORRELATIONS        correlation file (default ./correlations.txt)
+ *   EASYBJETS_CORRELATIONS        correlation file (default ../Run3Plots/Bootstrap/correlations.txt)
  *   EASYBJETS_HEATMAP_JES_RANGE   "lo,hi" colour range of the DR(R_JES) heat maps (default 0.90,1.10)
  *   EASYBJETS_HEATMAP_JER_RANGE   "lo,hi" colour range of the DR(sigma_insitu) and DR(R_JER)
  *                                 heat maps (default 0.60,1.40)

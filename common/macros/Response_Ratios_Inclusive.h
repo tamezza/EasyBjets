@@ -86,8 +86,8 @@
  *   EASYBJETS_FIT_MODEL         empty = Gaussian (default); bukin, cb, dscb, dgauss
  *                               or all add _<tag> to the plot folder, so it must match the fit
  *   EASYBJETS_CORR_METHOD       rho1 (default) | file | bootstrap; only changes the
- *                               "full" R_JES error
- *   EASYBJETS_CORRELATIONS      path of the rho file (default ./correlations.txt),
+ *                               "full" errors (R_JES, sigma_insitu, R_JER)
+ *   EASYBJETS_CORRELATIONS      path of the rho file (default ../Run3Plots/Bootstrap/correlations.txt),
  *                               read only when the method is file or bootstrap
  *   EASYBJETS_SUMMARY_VARIANTS  comma-separated correction labels for the extra
  *                               Summary_*_Subset plots (default: none)

@@ -17,9 +17,12 @@
  *   boot      same as file, but the file is expected to come from the
  *             bootstrap macro (only the warning message differs)
  *
- * File format: correlations.txt in the working directory, or the path in
- * EASYBJETS_CORRELATIONS, written by Bootstrap_Correlations. One line per
- * (domain, channel, WP, bin):
+ * File: written by Bootstrap_Correlations, looked for in this order:
+ *   1. the path in EASYBJETS_CORRELATIONS
+ *   2. ../Run3Plots/Bootstrap/correlations.txt (../Run2Plots for run2), i.e.
+ *      next to the plots of the channel, one file per run era
+ *   3. correlations.txt in the working directory (older location)
+ * One line per (domain, channel, WP, bin):
  *
  *   mass DB 0p46 bJER10v01:pt200to300            rho_mu_dd=0.98 rho_mu_mm=0.95 ...
  *   resp DB 0p46 bJER10v01:inclusive             rho_mu_dd=0.97 ... rho_sig_tt=0.99 ...
@@ -43,6 +46,8 @@
 
 #ifndef EASYBJETS_CORRELATION_CONFIG_H
 #define EASYBJETS_CORRELATION_CONFIG_H
+
+#include "RunEra.h"  // RunConfig::IsRun3, for the default file location
 
 #include <algorithm>
 #include <cctype>
@@ -144,6 +149,12 @@ inline std::string CorrKey(const std::string& channel,
 }
 
 // ----------------------------------------------------------------------------
+// Default location of correlations.txt: in the plot folder of the channel,
+// one file per run era (the macros run from <channel>/macros).
+inline std::string DefaultCorrelationsPath() {
+    return std::string(RunConfig::IsRun3() ? "../Run3Plots" : "../Run2Plots") + "/Bootstrap/correlations.txt";
+}
+
 // File loader. Parses correlations.txt and caches per-process.
 // Empty map in rho1 mode or when the file is missing.
 // ----------------------------------------------------------------------------
@@ -159,17 +170,22 @@ inline const std::map<std::string, CorrelationMatrix>& Correlations() {
     }
 
     const char* envPath = std::getenv("EASYBJETS_CORRELATIONS");
-    std::string path = envPath ? std::string(envPath) : std::string("correlations.txt");
+    std::string path = envPath ? std::string(envPath) : DefaultCorrelationsPath();
+    if (!envPath && !std::ifstream(path).good() && std::ifstream("correlations.txt").good()) {
+        std::cout << "[Correlations] " << path << " not found, using ./correlations.txt"
+                  << " (older location)\n";
+        path = "correlations.txt";
+    }
 
     std::ifstream in(path);
     if (!in.is_open()) {
         if (method == CorrMethod::Bootstrap) {
             std::cerr << "[Correlations] WARN: EASYBJETS_CORR_METHOD=bootstrap but '"
-                      << path << "' not found — did you run "
-                      << "Bootstrap_Correlations_*.cxx? Falling back to ρ=1.\n";
+                      << path << "' not found — run Bootstrap_Correlations.cxx first"
+                      << " (same EASYBJETS_RUN). Using the default rho.\n";
         } else {
             std::cout << "[Correlations] no file at '" << path
-                      << "' — all ρ default to 1.0 (FullCorr = CorrAware)\n";
+                      << "' — default rho used (1 between correction and nominal, 0 otherwise)\n";
         }
         return cache;
     }
@@ -177,6 +193,8 @@ inline const std::map<std::string, CorrelationMatrix>& Correlations() {
     std::string line;
     int nLoaded = 0, nMass = 0, nResp = 0, nOld = 0;
     while (std::getline(in, line)) {
+        // Settings of the bootstrap run that wrote the file, shown once
+        if (line.rfind("# Settings:", 0) == 0) std::cout << "[Correlations] " << line.substr(2) << "\n";
         size_t p = 0;
         while (p < line.size() && std::isspace((unsigned char)line[p])) ++p;
         if (p >= line.size() || line[p] == '#') continue;
