@@ -60,7 +60,7 @@
  * 
  *   bJES|bJER_ResponseInclusive_<topo>_<corr>_<wp>.pdf
  *   <treatment>/R_JES|R_JER_SummaryInclusive_<topo>_<corr|ALL>_<wp>.pdf
- *   <treatment> = uncorrelated | correlation_aware | full_correlation
+ *   <treatment> = uncorrelated | correlation_aware | full_correlation | bootstrap
  *
  * Options: EASYBJETS_RUN and EASYBJETS_FIT_MODEL must match the previous steps
  * (they set the Run{2,3}Plots folder).
@@ -627,7 +627,7 @@ inline void Ratio_Response_Combined_Summary_Inclusive_Run(const std::string& cor
                 DrawInclusiveResponseFigure(q, wp_label, topo, c, outR);
             }
             // Summary figures, one set per error treatment, in <treatment>/.
-            for (DRErr fl : {DRErr::Uncorr, DRErr::Corr, DRErr::Full}) {
+            for (DRErr fl : {DRErr::Uncorr, DRErr::Corr, DRErr::Full, DRErr::Boot}) {
                 DRErrFlavor() = fl;
                 std::string fdir = outDir + DRErrTag(fl) + "/";
                 gSystem->Exec(("mkdir -p " + fdir).c_str());
@@ -644,6 +644,7 @@ inline void Ratio_Response_Combined_Summary_Inclusive_Run(const std::string& cor
             } // error treatments
         } // JES, JER
     } // WPs
+    BootstrapErrors::PrintCounts("Summary");
     std::cout << "[Summary] Done (" << (binnedIncl ? "pT bins, inclusive mass" : "inclusive") << ").\n";
 }
 

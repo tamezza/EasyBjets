@@ -29,7 +29,7 @@
  * Output: <PlotDir>/Mass/Combined_Mass/<wp>/
  *   peak_Response_*.pdf, resolution_Response_*.pdf
  *       data and MC mu (sigma) vs pT, nominal on top, correction below
- *   {uncorrelated,correlation_aware,full_correlation}/b-JMD{P,R}_Summary_*.pdf
+ *   {uncorrelated,correlation_aware,full_correlation,bootstrap}/b-JMD{P,R}_Summary_*.pdf
  *       single ratio (top) and double ratio (bottom), one folder per
  *       double-ratio error treatment
  *
@@ -206,21 +206,30 @@ struct MCorr {
 //           CSV columns 16 / 18 (b-JMDP / b-JMDR, counted from 0)
 //   Corr    variant and nominal fully correlated, rho = 1      columns 35 / 37
 //   Full    rho from correlations.txt                          columns 36 / 38
+//   Boot    spread of the double ratio over the bootstrap replicas
+//           (dr_errors.csv, BootstrapErrors.h); Full where not measured
 // Corr and Full fall back to Uncorr when their value is missing or 0
 // (CSVs written before these columns existed), so all three can always be drawn.
-enum class DRErr { Uncorr, Corr, Full };
+enum class DRErr { Uncorr, Corr, Full, Boot };
 inline DRErr& DRErrFlavor() {
     static DRErr f = DRErr::Uncorr;
     return f;
 }
 inline const char* DRErrTag(DRErr f) {
-    return f == DRErr::Uncorr ? "uncorrelated"
-                              : (f == DRErr::Corr ? "correlation_aware" : "full_correlation");
+    switch (f) {
+    case DRErr::Corr: return "correlation_aware";
+    case DRErr::Full: return "full_correlation";
+    case DRErr::Boot: return "bootstrap";
+    default: return "uncorrelated";
+    }
 }
 inline const char* DRErrLabel(DRErr f) {
-    return f == DRErr::Uncorr ? "Uncorrelated errors"
-                              : (f == DRErr::Corr ? "Correlation-aware errors (#rho=1)"
-                                                  : "Full-correlation errors (#rho from file)");
+    switch (f) {
+    case DRErr::Corr: return "Correlation-aware errors (#rho=1)";
+    case DRErr::Full: return "Full-correlation errors (#rho from file)";
+    case DRErr::Boot: return "Bootstrap errors";
+    default: return "Uncorrelated errors";
+    }
 }
 
 inline double sNom(const MRow& r, MQ q) { return q == MQ::JMDP ? r.jmdp_nom : r.jmdr_nom; }
@@ -237,6 +246,14 @@ inline double sDRE(const MRow& r, MQ q) {
     }
     case DRErr::Full: {
         double v = (q == MQ::JMDP ? r.jmdp_dr_err_full : r.jmdr_dr_err_full);
+        return v > 0 ? v : uncorr;
+    }
+    case DRErr::Boot: {
+        const std::string bin = BootstrapErrors::MassBinLabel(r.pt_lo, r.pt_hi);
+        const double rel =
+            BootstrapErrors::RelErr(r.channel, q == MQ::JMDP ? "bJMDP" : "bJMDR", r.variant, r.wp, bin);
+        if (std::isfinite(rel)) return std::abs(sDR(r, q)) * rel;
+        double v = (q == MQ::JMDP ? r.jmdp_dr_err_full : r.jmdr_dr_err_full);  // not measured: full
         return v > 0 ? v : uncorr;
     }
     default:
@@ -792,7 +809,8 @@ inline void Mass_Ratios_Combined_Summary_Run(const std::string& corrections = "A
             }
             // Double-ratio figures
             for (MassCombined::DRErr fl :
-                 {MassCombined::DRErr::Uncorr, MassCombined::DRErr::Corr, MassCombined::DRErr::Full}) {
+                 {MassCombined::DRErr::Uncorr, MassCombined::DRErr::Corr, MassCombined::DRErr::Full,
+                  MassCombined::DRErr::Boot}) {
                 MassCombined::DRErrFlavor() = fl;
                 std::string fdir = outDir + MassCombined::DRErrTag(fl) + "/";
                 gSystem->Exec(("mkdir -p " + fdir).c_str());
@@ -809,6 +827,7 @@ inline void Mass_Ratios_Combined_Summary_Run(const std::string& corrections = "A
             }
         }
     }
+    BootstrapErrors::PrintCounts("MassCombined");
     std::cout << "[MassCombined] Done.\n";
 }
 

@@ -2,6 +2,7 @@
 /*
 !/.gitignore
 
+!/doc/
 !/common/
 /common/*
 !/common/*.h
@@ -35,6 +36,7 @@
 !/common/macros/Response_*.h
 !/common/macros/CutFlow.h
 !/common/macros/Efficiency.h
+!/common/macros/Bootstrap_*.h
 !/ZbbGamma/macros/
 /ZbbGamma/macros/*
 !/ZbbGamma/macros/rootlogon.C
@@ -46,6 +48,7 @@
 !/ZbbGamma/macros/Response_*.cxx
 !/ZbbGamma/macros/CutFlow.cxx
 !/ZbbGamma/macros/Efficiency.cxx
+!/ZbbGamma/macros/Bootstrap_*.cxx
 !/ZbbJets/macros/
 /ZbbJets/macros/*
 !/ZbbJets/macros/rootlogon.C
@@ -57,5 +60,6 @@
 !/ZbbJets/macros/Response_*.cxx
 !/ZbbJets/macros/CutFlow.cxx
 !/ZbbJets/macros/Efficiency.cxx
+!/ZbbJets/macros/Bootstrap_*.cxx
 .DS_Store
 

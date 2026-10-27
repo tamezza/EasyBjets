@@ -40,7 +40,7 @@
  *   Summary_DataMC/<treatment>/R_JES|R_JER_Summary_<topo>_<corr|ALL>_<mass>_<wp>.pdf
  *   Summary_DataMC/<treatment>/R_JES|R_JER_Summary_<topo>_<corr>_AllMass_<wp>.pdf
  *   Summary_Response/bJES|bJER_Response_<topo>_<corr>_<mass|AllMass>_<wp>.pdf
- *   <treatment> = uncorrelated | correlation_aware | full_correlation
+ *   <treatment> = uncorrelated | correlation_aware | full_correlation | bootstrap
  *
  * Option: EASYBJETS_YRANGE_<JES|JER>_<SR|DR|COMP>="lo,hi" fixes the y range of
  * a panel, e.g. to give Run 2 and Run 3 the same scale (SR: single ratio,
@@ -72,6 +72,7 @@
 #define RATIO_RESPONSE_COMBINED_SUMMARY_H
 
 #include "Response_Ratios_Combined.h" 
+#include "BootstrapErrors.h"  // bootstrap double-ratio errors (dr_errors.csv)
 #include <TGraphErrors.h>
 #include <TH1F.h>
 #include <TCanvas.h>
@@ -97,18 +98,28 @@ enum class Qty { JES, JER };
 //   Corr    variant and nominal fully correlated (rho = 1, same events)
 //   Full    rho measured by the bootstrap ("correlations.txt"), for R_JES and
 //           R_JER. Without a matching line the default matrix is used.
-enum class DRErr { Uncorr, Corr, Full };
+//   Boot    spread of the double ratio over the bootstrap replicas
+//           (dr_errors.csv, BootstrapErrors.h); Full where not measured
+enum class DRErr { Uncorr, Corr, Full, Boot };
 inline DRErr& DRErrFlavor() {
     static DRErr f = DRErr::Uncorr;
     return f;
 }
 inline const char* DRErrTag(DRErr f) {
-    return f == DRErr::Uncorr ? "uncorrelated"
-                              : (f == DRErr::Corr ? "correlation_aware" : "full_correlation");
+    switch (f) {
+    case DRErr::Corr: return "correlation_aware";
+    case DRErr::Full: return "full_correlation";
+    case DRErr::Boot: return "bootstrap";
+    default: return "uncorrelated";
+    }
 }
 inline const char* DRErrLabel(DRErr f) {
-    return f == DRErr::Uncorr ? "Uncorrelated errors"
-                              : (f == DRErr::Corr ? "Correlation-aware errors" : "Full-correlation errors");
+    switch (f) {
+    case DRErr::Corr: return "Correlation-aware errors";
+    case DRErr::Full: return "Full-correlation errors";
+    case DRErr::Boot: return "Bootstrap errors";
+    default: return "Uncorrelated errors";
+    }
 }
 
 inline std::string QtyTag(Qty q) { return (q == Qty::JES) ? "R_JES" : "R_JER"; }
@@ -176,6 +187,14 @@ inline double DoubleRatErr(const Row& r, Qty q) {
     }
     case DRErr::Full: {
         double v = (q == Qty::JES ? r.rjes_dr_err_full : r.rjer_dr_err_full);
+        return v > 0 ? v : unc;
+    }
+    case DRErr::Boot: {
+        const std::string bin = BootstrapErrors::RespBinLabel(r.channel, r.pt_bin_index, r.mass_bin);
+        const double rel =
+            BootstrapErrors::RelErr(r.channel, q == Qty::JES ? "bJES" : "bJER", r.variant, r.wp, bin);
+        if (std::isfinite(rel)) return std::abs(DoubleRatio(r, q)) * rel;
+        double v = (q == Qty::JES ? r.rjes_dr_err_full : r.rjer_dr_err_full);  // not measured: full
         return v > 0 ? v : unc;
     }
     default:
@@ -1351,7 +1370,7 @@ inline void Ratio_Response_Combined_Summary_Run(const std::string& corrections =
             // Summary figures, one full set per double-ratio error treatment in
             // Summary_DataMC/<treatment>/. Only the double-ratio errors differ
             // between the three sets.
-            for (DRErr fl : {DRErr::Uncorr, DRErr::Corr, DRErr::Full}) {
+            for (DRErr fl : {DRErr::Uncorr, DRErr::Corr, DRErr::Full, DRErr::Boot}) {
                 DRErrFlavor() = fl;
                 std::string fdir = outDir + DRErrTag(fl) + "/";
                 gSystem->Exec(("mkdir -p " + fdir).c_str());
@@ -1394,6 +1413,7 @@ inline void Ratio_Response_Combined_Summary_Run(const std::string& corrections =
             }
         }
     }
+    BootstrapErrors::PrintCounts("Summary");
     std::cout << "[Summary] Done.\n";
 }
 
