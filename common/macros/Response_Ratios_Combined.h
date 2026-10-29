@@ -16,17 +16,24 @@
  * 200 to 1200 GeV, with a dashed line at 450 GeV between the two.
  *
  * For each correction (bJER10v00, bJER10v01, MuonCorr) found in both channels
- * and each WP, it draws 7 plots of the double ratio correction / nominal vs pT:
- * 
- *   R_JES_DR_vs_pT_<corr>_<wp>_Combined.pdf                   uncorrelated errors
- *   sigma_insitu_DR_vs_pT_<corr>_<wp>_Combined.pdf            uncorrelated errors
- *   sigma_insitu_DR_vs_pT_<corr>_<wp>_Combined_CorrAware.pdf  correlation-aware errors
- *   sigma_insitu_DR_vs_pT_<corr>_<wp>_Combined_Cmp.pdf        both errors overlaid
- *   R_JER_DR_vs_pT_<corr>_<wp>_Combined.pdf                   uncorrelated errors
- *   R_JER_DR_vs_pT_<corr>_<wp>_Combined_CorrAware.pdf         correlation-aware errors
- *   R_JER_DR_vs_pT_<corr>_<wp>_Combined_Cmp.pdf               both errors overlaid
- * 
- * into <PlotDir>/Response/Combined_Ratios/<wp>/.
+ * and each WP, it draws the double ratio correction / nominal vs pT of R_JES,
+ * sigma_insitu and R_JER:
+ *
+ *   <treatment>/R_JES_DR_vs_pT_<corr>_<wp>_Combined.pdf
+ *   <treatment>/sigma_insitu_DR_vs_pT_<corr>_<wp>_Combined.pdf
+ *   <treatment>/R_JER_DR_vs_pT_<corr>_<wp>_Combined.pdf
+ *
+ * once for each error treatment, the same four as in the combined summaries:
+ *   uncorrelated/        fit errors added in quadrature
+ *   correlation_aware/   correction and nominal fully correlated (rho = 1)
+ *   full_correlation/    fit errors propagated with the bootstrap rho
+ *                        (correlations.txt, through the ratio macros)
+ *   bootstrap/           spread of the double ratio over the bootstrap
+ *                        replicas (dr_errors.csv); the full_correlation error
+ *                        where it was not measured (e.g. MuonCorr)
+ * and in comparison/ the same three plots with the full_correlation (solid)
+ * and bootstrap (dashed) error bars side by side.
+ * All go into <PlotDir>/Response/Combined_Ratios/<wp>/.
  * Colour : mass cut (red 50-80, blue 80-110, green >= 110 GeV), 
  * marker : channel (circle DB, triangle MJB).
  *
@@ -37,8 +44,13 @@
  *   root 'Response_Ratios_Combined.cxx()'              every correction
  *   root 'Response_Ratios_Combined.cxx("bJER10v01")'   one correction
  *
+ * For the full_correlation errors, run the ratio macros with
+ * EASYBJETS_CORR_METHOD=bootstrap; for the bootstrap errors, run
+ * Bootstrap_Analyze in both channels first (see Bootstrap_Correlations.h).
+ *
  * Input: Summary_Ratios_<wp>.csv written by GenerateSummaryCSV in
- * Response_Ratios_pTbins_Mcuts.h, one per channel and correction (path in CSVPath below).
+ * Response_Ratios_pTbins_Mcuts.h, one per channel and correction (path in CSVPath below),
+ * and for the bootstrap errors dr_errors.csv of both channels (BootstrapErrors.h).
  *
  * This file also provides the CSV reader (Row, ReadCSV, RowsForVariant), the
  * CSV paths (ChannelDirName, PlotsDirName, CSVPath, CSVPathMassInclusive) and
@@ -58,8 +70,11 @@
 #include "VariantConfig.h"
 #include "CommonUtils.h"
 #include "RunEra.h"
+#include "BootstrapErrors.h"  // bootstrap double-ratio errors (dr_errors.csv)
 
+#include <cmath>
 #include <fstream>
+#include <functional>
 #include <iostream>
 #include <map>
 #include <sstream>
@@ -322,6 +337,87 @@ inline std::string MassBinDisplayLabel(int idx) {
     }
 }
 
+// Error treatment of the double ratio, one output folder each (the same four
+// as in the combined summaries):
+//   Uncorr  fit errors added in quadrature
+//   Corr    correction and nominal fully correlated (rho = 1)
+//   Full    fit errors propagated with the bootstrap rho (CSV columns 41-43)
+//   Boot    spread of the double ratio over the bootstrap replicas
+//           (dr_errors.csv); the Full error where it was not measured
+// An error the CSV does not hold (older format, or 0) falls back to Uncorr.
+enum class ErrTreatment { Uncorr, Corr, Full, Boot };
+
+inline const char* ErrTreatmentTag(ErrTreatment t) {
+    switch (t) {
+    case ErrTreatment::Corr: return "correlation_aware";
+    case ErrTreatment::Full: return "full_correlation";
+    case ErrTreatment::Boot: return "bootstrap";
+    default: return "uncorrelated";
+    }
+}
+
+inline const char* ErrTreatmentLabel(ErrTreatment t) {
+    switch (t) {
+    case ErrTreatment::Corr: return "Correlation-aware errors";
+    case ErrTreatment::Full: return "Full-correlation errors";
+    case ErrTreatment::Boot: return "Bootstrap errors";
+    default: return "Uncorrelated errors";
+    }
+}
+
+// The three double ratios drawn.
+enum class DRObs { RJES, SigInsitu, RJER };
+
+inline double DRValue(const Row& r, DRObs o) {
+    switch (o) {
+    case DRObs::RJES: return r.rjes_dr;
+    case DRObs::SigInsitu: return r.sig_insitu_dr;
+    default: return r.rjer_dr;
+    }
+}
+
+// Error of one double ratio with one treatment.
+inline double DRErrorOf(const Row& r, DRObs o, ErrTreatment t) {
+    double unc = 0, corr = 0, full = 0;
+    const char* bootName = "";  // observable name in dr_errors.csv
+    switch (o) {
+    case DRObs::RJES:
+        unc = r.rjes_dr_err;
+        corr = r.rjes_dr_err_corr;
+        full = r.rjes_dr_err_full;
+        bootName = "bJES";
+        break;
+    case DRObs::SigInsitu:
+        unc = r.sig_insitu_dr_err_unc;
+        corr = r.sig_insitu_dr_err_corr;
+        full = r.sig_insitu_dr_err_full;
+        bootName = "sigma_insitu";
+        break;
+    default:
+        unc = r.rjer_dr_err_unc;
+        corr = r.rjer_dr_err_corr;
+        full = r.rjer_dr_err_full;
+        bootName = "bJER";
+        break;
+    }
+    const double fullOrUnc = (r.hasFullErr && full > 0) ? full : unc;
+
+    switch (t) {
+    case ErrTreatment::Corr:
+        return corr > 0 ? corr : unc;
+    case ErrTreatment::Full:
+        return fullOrUnc;
+    case ErrTreatment::Boot: {
+        const std::string bin = BootstrapErrors::RespBinLabel(r.channel, r.pt_bin_index, r.mass_bin);
+        const double rel = BootstrapErrors::RelErr(r.channel, bootName, r.variant, r.wp, bin);
+        if (std::isfinite(rel)) return std::abs(DRValue(r, o)) * rel;
+        return fullOrUnc;  // not measured (e.g. MuonCorr): the full error
+    }
+    default:
+        return unc;
+    }
+}
+
 // What to draw on one combined plot: the y-axis title, where to save it, and
 // functions returning the value and error from a CSV row. With
 // drawComparison, a second error (getYErrAlt) is drawn next to the first.
@@ -330,6 +426,7 @@ struct ChartData {
     std::string outputPath;
     std::string variantLabel;
     std::string wpLabel;
+    std::string errLabel;  // error treatment, shown under the WP
     std::function<double(const Row&)> getY;
     std::function<double(const Row&)> getYErr;
     bool drawComparison = false; // also draw the error from getYErrAlt
@@ -520,6 +617,7 @@ inline void DrawCombined(const std::vector<Row>& dbRows, const std::vector<Row>&
     atlasLabel.DrawLatex(0.16, 0.80, RunConfig::LumiLabel().c_str());
     atlasLabel.DrawLatex(0.16, 0.76, ("Variant: " + cd.variantLabel + " / Nominal").c_str());
     atlasLabel.DrawLatex(0.16, 0.72, ("WP: " + cd.wpLabel).c_str());
+    if (!cd.errLabel.empty()) atlasLabel.DrawLatex(0.16, 0.68, cd.errLabel.c_str());
 
     c->SaveAs(cd.outputPath.c_str());
     std::cout << "[Combined] Saved: " << cd.outputPath << "\n";
@@ -527,128 +625,67 @@ inline void DrawCombined(const std::vector<Row>& dbRows, const std::vector<Row>&
     delete c;
 }
 
-// The 7 combined plots of one correction and WP (list in the file header).
+// The combined plots of one correction and WP (list in the file header): the
+// three double ratios in one folder per error treatment, and in comparison/
+// the full_correlation and bootstrap errors side by side.
 inline void RunForVariantWP(const std::string& variantLabel, const std::string& wp_file,
                             const std::string& wp_label, const std::vector<Row>& dbRows,
                             const std::vector<Row>& mjbRows, const std::string& outDir) {
-    std::string vl = variantLabel;
-    std::string suffix = "_" + vl + "_" + wp_file + "_Combined";
-    auto path = [&](const std::string& stem) {
-        return outDir + stem + suffix + ".pdf";
+    const std::string suffix = "_" + variantLabel + "_" + wp_file + "_Combined.pdf";
+
+    struct ObsDef {
+        DRObs obs;
+        std::string stem;    // file name start
+        std::string yTitle;
+    };
+    const std::vector<ObsDef> observables = {
+        {DRObs::RJES, "R_JES_DR_vs_pT", "R_{JES}^{Corrected} / R_{JES}^{Nominal}"},
+        {DRObs::SigInsitu, "sigma_insitu_DR_vs_pT", "#sigma_{insitu}^{Corrected} / #sigma_{insitu}^{Nominal}"},
+        {DRObs::RJER, "R_JER_DR_vs_pT", "R_{JER}^{Corrected} / R_{JER}^{Nominal}"},
     };
 
-    // 1) R_JES, uncorrelated errors (the only ones drawn here for R_JES)
-    {
-        ChartData cd;
-        cd.yTitle = "R_{JES}^{Corrected} / R_{JES}^{Nominal}";
-        cd.outputPath = path("R_JES_DR_vs_pT");
-        cd.variantLabel = vl;
-        cd.wpLabel = wp_label;
-        cd.getY = [](const Row& r) {
-            return r.rjes_dr;
-        };
-        cd.getYErr = [](const Row& r) {
-            return r.rjes_dr_err;
-        };
-        DrawCombined(dbRows, mjbRows, cd);
+    // One folder per error treatment
+    for (ErrTreatment t : {ErrTreatment::Uncorr, ErrTreatment::Corr, ErrTreatment::Full, ErrTreatment::Boot}) {
+        const std::string dir = outDir + ErrTreatmentTag(t) + "/";
+        gSystem->Exec(("mkdir -p " + dir).c_str());
+        for (const auto& od : observables) {
+            const DRObs o = od.obs;
+            ChartData cd;
+            cd.yTitle = od.yTitle;
+            cd.outputPath = dir + od.stem + suffix;
+            cd.variantLabel = variantLabel;
+            cd.wpLabel = wp_label;
+            cd.errLabel = ErrTreatmentLabel(t);
+            cd.getY = [o](const Row& r) {
+                return DRValue(r, o);
+            };
+            cd.getYErr = [o, t](const Row& r) {
+                return DRErrorOf(r, o, t);
+            };
+            DrawCombined(dbRows, mjbRows, cd);
+        }
     }
 
-    // 2) sigma_insitu, uncorrelated errors
-    {
+    // comparison/: full_correlation (solid) and bootstrap (dashed) error bars
+    const std::string cmpDir = outDir + "comparison/";
+    gSystem->Exec(("mkdir -p " + cmpDir).c_str());
+    for (const auto& od : observables) {
+        const DRObs o = od.obs;
         ChartData cd;
-        cd.yTitle = "#sigma_{insitu}^{Corrected} / #sigma_{insitu}^{Nominal}";
-        cd.outputPath = path("sigma_insitu_DR_vs_pT");
-        cd.variantLabel = vl;
+        cd.yTitle = od.yTitle;
+        cd.outputPath = cmpDir + od.stem + suffix;
+        cd.variantLabel = variantLabel;
         cd.wpLabel = wp_label;
-        cd.getY = [](const Row& r) {
-            return r.sig_insitu_dr;
+        cd.errLabel = "Full correlation (solid), bootstrap (dashed)";
+        cd.getY = [o](const Row& r) {
+            return DRValue(r, o);
         };
-        cd.getYErr = [](const Row& r) {
-            return r.sig_insitu_dr_err_unc;
-        };
-        DrawCombined(dbRows, mjbRows, cd);
-    }
-    // 3) sigma_insitu, correlation-aware errors
-    {
-        ChartData cd;
-        cd.yTitle = "#sigma_{insitu}^{Corrected} / #sigma_{insitu}^{Nominal}";
-        cd.outputPath = outDir + "sigma_insitu_DR_vs_pT" + suffix + "_CorrAware.pdf";
-        cd.variantLabel = vl;
-        cd.wpLabel = wp_label;
-        cd.getY = [](const Row& r) {
-            return r.sig_insitu_dr;
-        };
-        cd.getYErr = [](const Row& r) {
-            return r.sig_insitu_dr_err_corr;
-        };
-        DrawCombined(dbRows, mjbRows, cd);
-    }
-    // 4) sigma_insitu, both errors
-    {
-        ChartData cd;
-        cd.yTitle = "#sigma_{insitu}^{Corrected} / #sigma_{insitu}^{Nominal}";
-        cd.outputPath = outDir + "sigma_insitu_DR_vs_pT" + suffix + "_Cmp.pdf";
-        cd.variantLabel = vl;
-        cd.wpLabel = wp_label;
-        cd.getY = [](const Row& r) {
-            return r.sig_insitu_dr;
-        };
-        cd.getYErr = [](const Row& r) {
-            return r.sig_insitu_dr_err_unc;
+        cd.getYErr = [o](const Row& r) {
+            return DRErrorOf(r, o, ErrTreatment::Full);
         };
         cd.drawComparison = true;
-        cd.getYErrAlt = [](const Row& r) {
-            return r.sig_insitu_dr_err_corr;
-        };
-        DrawCombined(dbRows, mjbRows, cd);
-    }
-
-    // 5) R_JER, uncorrelated errors
-    {
-        ChartData cd;
-        cd.yTitle = "R_{JER}^{Corrected} / R_{JER}^{Nominal}";
-        cd.outputPath = path("R_JER_DR_vs_pT");
-        cd.variantLabel = vl;
-        cd.wpLabel = wp_label;
-        cd.getY = [](const Row& r) {
-            return r.rjer_dr;
-        };
-        cd.getYErr = [](const Row& r) {
-            return r.rjer_dr_err_unc;
-        };
-        DrawCombined(dbRows, mjbRows, cd);
-    }
-    // 6) R_JER, correlation-aware errors
-    {
-        ChartData cd;
-        cd.yTitle = "R_{JER}^{Corrected} / R_{JER}^{Nominal}";
-        cd.outputPath = outDir + "R_JER_DR_vs_pT" + suffix + "_CorrAware.pdf";
-        cd.variantLabel = vl;
-        cd.wpLabel = wp_label;
-        cd.getY = [](const Row& r) {
-            return r.rjer_dr;
-        };
-        cd.getYErr = [](const Row& r) {
-            return r.rjer_dr_err_corr;
-        };
-        DrawCombined(dbRows, mjbRows, cd);
-    }
-    // 7) R_JER, both errors
-    {
-        ChartData cd;
-        cd.yTitle = "R_{JER}^{Corrected} / R_{JER}^{Nominal}";
-        cd.outputPath = outDir + "R_JER_DR_vs_pT" + suffix + "_Cmp.pdf";
-        cd.variantLabel = vl;
-        cd.wpLabel = wp_label;
-        cd.getY = [](const Row& r) {
-            return r.rjer_dr;
-        };
-        cd.getYErr = [](const Row& r) {
-            return r.rjer_dr_err_unc;
-        };
-        cd.drawComparison = true;
-        cd.getYErrAlt = [](const Row& r) {
-            return r.rjer_dr_err_corr;
+        cd.getYErrAlt = [o](const Row& r) {
+            return DRErrorOf(r, o, ErrTreatment::Boot);
         };
         DrawCombined(dbRows, mjbRows, cd);
     }
