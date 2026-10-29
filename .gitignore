@@ -2,7 +2,11 @@
 /*
 !/.gitignore
 
+!/README.md
 !/doc/
+/doc/*
+!/doc/make_readme_figures.C
+!/doc/figures/
 !/common/
 /common/*
 !/common/*.h
